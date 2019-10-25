@@ -26,6 +26,7 @@ RD_ASUSER = os.getenv('RD_ASUSER', 'rundeck')
 DEBUG=os.getenv('DEBUG', False)
 BIND_IP=os.getenv('BIND_IP', '0.0.0.0')
 BIND_PORT=os.getenv('BIND_PORT', 5000)
+VERIFY_CERT = False if os.getenv('VERIFY_CERT') == 'False' or os.getenv('VERIFY_CERT') == 'false' else True
 
 #Max time to wait to return the response to Servicedesk, in seconds. If the job is still running, it will return "running".
 SD_JOB_WAIT_TIMEOUT = os.getenv('SD_JOB_WAIT_TIMEOUT', 10)
@@ -110,7 +111,7 @@ def sdtorundeck():
 
 	#Start the job.
 	url = RD_URL + RD_RUNJOB_ENDPOINT.format(request.form['sd-jobid'])
-	response = json.loads(requests.request("POST", url, data=json.dumps(payloadrundeck), headers=headers).content.decode('utf-8'))
+	response = json.loads(requests.request("POST", url, data=json.dumps(payloadrundeck), headers=headers, verify=VERIFY_CERT).content.decode('utf-8'))
 	exec_id = response['id']
 	permalink = response['permalink']
 
@@ -128,7 +129,7 @@ def sdtorundeck():
 	while SD_JOB_WAIT_TIMEOUT > 0:
 		sleep(1)
 		url = RD_URL + RD_EXEC_ENDPOINT.format(exec_id)
-		response = json.loads(requests.request("GET", url, headers=headers).content.decode('utf-8'))
+		response = json.loads(requests.request("GET", url, headers=headers, verify=VERIFY_CERT).content.decode('utf-8'))
 		status = response['status']
 		sd_resultado['status'] = status
 		if status == 'succeeded' or status == 'failed':
@@ -140,7 +141,7 @@ def sdtorundeck():
 	if SD_JOB_WAIT_TIMEOUT > 0: 
 		if 'sd-returnlog' in request.form:
 			url = RD_URL + RD_EXEC_OUTPUT_ENDPOINT.format(exec_id)
-			response = json.loads(requests.request("GET", url, headers=headers).content.decode('utf-8'))
+			response = json.loads(requests.request("GET", url, headers=headers, verify=VERIFY_CERT).content.decode('utf-8'))
 			sd_resultado['log_output'] = response['entries'][0]['log']
 		else:
 			pass
@@ -184,7 +185,7 @@ def rundecktosd():
 
 
 	url = RD_URL + RD_GET_JOB_DEFINITION.format(request.form['sd-jobid'])
-	response = yaml.load(requests.request("GET", url, headers=headers).content)
+	response = yaml.load(requests.request("GET", url, headers=headers, verify=VERIFY_CERT).content, Loader=yaml.FullLoader)
 
 	sd_resultado = {}
 
